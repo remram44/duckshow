@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>DuckShow</title>
+    <style>
+#viz table {
+  border-collapse: collapse;
+}
+#viz td, #viz th {
+  border: 1px solid black;
+}
+    </style>
+  </head>
+  <body>
+    <form id="query">
+      <textarea name="query"></textarea>
+      <input type="submit" value="Query">
+    </form>
+    <div id="viz"></div>
+    <script type="module" src="index.mjs"></script>
+  </body>
+</html>
