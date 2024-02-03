@@ -36,6 +36,7 @@ queryForm.addEventListener('submit', function(e) {
     return queryDB(db, query);
   });
 });
+[].forEach.call(queryForm.querySelectorAll('input[type="submit"]'), (e) => { e.disabled = false; });
 
 function tabulate(results) {
   let table = document.createElement('table');
