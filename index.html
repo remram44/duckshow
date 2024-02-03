@@ -3,22 +3,41 @@
   <head>
     <meta charset="utf-8">
     <title>DuckShow</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
+body {
+  margin: 0;
+  padding: 0;
+}
+div.container {
+  margin: .5em;
+}
+div.container textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+}
 #viz table {
   border-collapse: collapse;
+  width: 100%;
 }
 #viz td, #viz th {
   border: 1px solid black;
 }
+p.error {
+  color: red;
+}
     </style>
   </head>
   <body>
-    <form id="query">
-      <input type="hidden" name="source" value="read_parquet(['http://localhost:8000/data/year=2024/month=1/file.parquet', 'http://localhost:8000/data/year=2023/month=10/file.parquet', 'http://localhost:8000/data/year=2023/month=12/file.parquet', 'http://localhost:8000/data/year=2023/month=11/file.parquet'], hive_partitioning=1)">
-      <textarea name="query"></textarea>
-      <input type="submit" value="Query">
-    </form>
-    <div id="viz"></div>
+    <div class="container">
+      <form id="query">
+        <input type="hidden" name="source" value="read_parquet(['http://localhost:8000/data/year=2024/month=1/file.parquet', 'http://localhost:8000/data/year=2023/month=10/file.parquet', 'http://localhost:8000/data/year=2023/month=12/file.parquet', 'http://localhost:8000/data/year=2023/month=11/file.parquet'], hive_partitioning=1)">
+        <p><textarea name="query"></textarea></p>
+        <p><input type="submit" value="Query"></p>
+      </form>
+      <div id="viz"></div>
+    </div>
     <script type="module" src="index.mjs"></script>
   </body>
 </html>
