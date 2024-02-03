@@ -26,7 +26,10 @@ import * as duckdb from 'https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.28.1
   queryForm.addEventListener('submit', function(e) {
     e.preventDefault();
 
+    let source = queryForm.elements['source'].value;
     let query = queryForm.elements['query'].value;
+
+    query = (' ' + query).replace(/([^$])\${DATA}/, '$1' + source).substring(1).replace(/\$\$/, '$$');
 
     queryDB(db, query);
   });
