@@ -37,35 +37,80 @@ queryForm.addEventListener('submit', function(e) {
   });
 });
 
+function tabulate(results) {
+  let table = document.createElement('table');
+
+  let header = document.createElement('tr');
+  for(let col of results.schema.fields) {
+    let cell = document.createElement('th');
+    cell.innerText = col.name;
+    header.appendChild(cell);
+  }
+  table.appendChild(header);
+
+  for(let batch of results) {
+    let row = document.createElement('tr');
+    for(let [col, val] of batch) {
+      let cell = document.createElement('td');
+      cell.innerText = val;
+      row.appendChild(cell);
+    }
+    table.appendChild(row);
+  }
+  return table;
+}
+
+function plot(results, resolution) {
+  let graph = document.createElement('p');
+  graph.innerText = 'Graph here, resolution=' + resolution;
+  return graph;
+}
+
 async function queryDB(db, query) {
   try {
     const conn = await db.connect();
-    let res = await conn.query(query);
+    let results = await conn.query(query);
+    console.log('results:', results);
 
-    let table = document.createElement('table');
+    let table = tabulate(results);
 
-    let header = document.createElement('tr');
-    for(let col of res.schema.fields) {
-      let cell = document.createElement('th');
-      cell.innerText = col.name;
-      header.appendChild(cell);
+    let allFields = {};
+    for(let col of results.schema.fields) {
+      allFields[col.name] = true;
     }
-    table.appendChild(header);
-
-    console.log('results:', res);
-    for(let batch of res) {
-      let row = document.createElement('tr');
-      for(let [col, val] of batch) {
-        let cell = document.createElement('td');
-        cell.innerText = val;
-        row.appendChild(cell);
+    let resolution = null;
+    if(allFields['year'] && allFields['month'] && allFields['day']) {
+      if(allFields['hour']) {
+        if(allFields['minute']) {
+          if(allFields['second']) {
+            if(allFields['microseconds']) {
+              resolution = 'microseconds';
+            } else {
+              resolution = 'second';
+            }
+          } else {
+            resolution = 'minute';
+          }
+        } else {
+          resolution = 'hour';
+        }
+      } else {
+        resolution = 'day';
       }
-      table.appendChild(row);
     }
+
+    let graph = null;
+    if(resolution) {
+      graph = plot(results, resolution);
+    }
+
     await conn.close();
 
     document.getElementById('viz').innerText = '';
     document.getElementById('viz').appendChild(table);
+    if(graph) {
+      document.getElementById('viz').appendChild(graph);
+    }
   } catch(e) {
     console.error(e);
     document.getElementById('viz').innerText = '';
