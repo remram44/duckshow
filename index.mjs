@@ -49,21 +49,73 @@ function tabulate(results) {
   }
   table.appendChild(header);
 
-  for(let batch of results) {
-    let row = document.createElement('tr');
-    for(let [col, val] of batch) {
+  for(let row of results) {
+    let tr = document.createElement('tr');
+    for(let [col, val] of row) {
       let cell = document.createElement('td');
       cell.innerText = val;
-      row.appendChild(cell);
+      tr.appendChild(cell);
     }
-    table.appendChild(row);
+    table.appendChild(tr);
   }
   return table;
 }
 
+function zeroPad(num, digits) {
+  return ('' + num).padStart(digits, '0');
+}
+
+const dateFormatters = {
+  'year': (r) => zeroPad(r['year'], 4) + '-01-01',
+  'month': (r) => zeroPad(r['year'], 4) + '-' + zeroPad(r['month'], 2) + '-01',
+  'day': (r) => zeroPad(r['year'], 4) + '-' + zeroPad(r['month'], 2) + '-' + zeroPad(r['day'], 2),
+  'hour': (r) => zeroPad(r['year'], 4) + '-' + zeroPad(r['month'], 2) + '-' + zeroPad(r['day'], 2) + 'T' + zeroPad(r['hour'], 2) + ':00:00Z',
+  'minute': (r) => zeroPad(r['year'], 4) + '-' + zeroPad(r['month'], 2) + '-' + zeroPad(r['day'], 2) + 'T' + zeroPad(r['hour'], 2) + ':' + zeroPad(r['minute'], 2) + ':00Z',
+  'second': (r) => zeroPad(r['year'], 4) + '-' + zeroPad(r['month'], 2) + '-' + zeroPad(r['day'], 2) + 'T' + zeroPad(r['hour'], 2) + ':' + zeroPad(r['minute'], 2) + ':' + zeroPad(r['second'], 2) + 'Z',
+  'microseconds': (r) => zeroPad(r['year'], 4) + '-' + zeroPad(r['month'], 2) + '-' + zeroPad(r['day'], 2) + 'T' + zeroPad(r['hour'], 2) + ':' + zeroPad(r['minute'], 2) + ':' + zeroPad(r['second'], 2) + '.' + zeroPad(r['microseconds'], 6) + 'Z',
+};
+
+// https://vega.github.io/vega-lite/docs/timeunit.html
+const vlTimeUnits = {
+  'year': 'year',
+  'month': 'yearmonth',
+  'day': 'yearmonthdate',
+  'hour': 'yearmonthdatehours',
+  'minute': 'yearmonthdatehoursminutes',
+  'second': 'yearmonthdatehoursminutesseconds',
+  'microseconds': 'yearmonthdatehoursminutessecondsmilliseconds',
+};
+
 function plot(results, resolution) {
-  let graph = document.createElement('p');
-  graph.innerText = 'Graph here, resolution=' + resolution;
+  let graph = document.createElement('div');
+  graph.style = "width: 100%; height: 50vh;";
+  let formatter = dateFormatters[resolution];
+  let data = [];
+  for(let row of results) {
+    let entry = {label: 'thing', date: formatter(row), value: Number(row['value'])};
+    data.push(entry);
+  }
+  console.log(data);
+
+  var vlSpec = {
+    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+    "description": "Time series",
+    "width": "container",
+    "height": "container",
+    "data": {
+      values: data,
+    },
+    "mark": {
+      "type": "line",
+      "point": true
+    },
+    "encoding": {
+      "x": {"field": "date", "type": "temporal", "utc": true, "timeUnit": vlTimeUnits[resolution]},
+      "y": {"field": "value", "type": "quantitative"},
+      "color": {"field": "label", "type": "nominal"}
+    }
+  };
+  vegaEmbed(graph, vlSpec);
   return graph;
 }
 
@@ -75,34 +127,36 @@ async function queryDB(db, query) {
 
     let table = tabulate(results);
 
+    let graph = null;
     let allFields = {};
     for(let col of results.schema.fields) {
       allFields[col.name] = true;
     }
-    let resolution = null;
-    if(allFields['year'] && allFields['month'] && allFields['day']) {
-      if(allFields['hour']) {
-        if(allFields['minute']) {
-          if(allFields['second']) {
-            if(allFields['microseconds']) {
-              resolution = 'microseconds';
+    if(allFields['value']) {
+      let resolution = null;
+      if(allFields['year'] && allFields['month'] && allFields['day']) {
+        if(allFields['hour']) {
+          if(allFields['minute']) {
+            if(allFields['second']) {
+              if(allFields['microseconds']) {
+                resolution = 'microseconds';
+              } else {
+                resolution = 'second';
+              }
             } else {
-              resolution = 'second';
+              resolution = 'minute';
             }
           } else {
-            resolution = 'minute';
+            resolution = 'hour';
           }
         } else {
-          resolution = 'hour';
+          resolution = 'day';
         }
-      } else {
-        resolution = 'day';
       }
-    }
 
-    let graph = null;
-    if(resolution) {
-      graph = plot(results, resolution);
+      if(resolution) {
+        graph = plot(results, resolution);
+      }
     }
 
     await conn.close();
