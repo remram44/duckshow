@@ -1,7 +1,6 @@
 import * as duckdb from 'https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.28.1-dev106.0/+esm';
 
-(async () => {
-  let db;
+let database = (async () => {
   try {
     const JSDELIVR_BUNDLES = duckdb.getJsDelivrBundles();
     const bundle = await duckdb.selectBundle(JSDELIVR_BUNDLES);
@@ -12,28 +11,31 @@ import * as duckdb from 'https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.28.1
 
     const worker = new Worker(worker_url);
     const logger = new duckdb.ConsoleLogger();
-    db = new duckdb.AsyncDuckDB(logger, worker);
+    const db = new duckdb.AsyncDuckDB(logger, worker);
     await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
     URL.revokeObjectURL(worker_url);
+
+    console.log("DuckDB loaded");
+    return db;
   } catch(e) {
     console.error(e);
-    return;
+    return null;
   }
-
-  console.log("DuckDB loaded");
-
-  let queryForm = document.getElementById('query');
-  queryForm.addEventListener('submit', function(e) {
-    e.preventDefault();
-
-    let source = queryForm.elements['source'].value;
-    let query = queryForm.elements['query'].value;
-
-    query = (' ' + query).replace(/([^$])\${DATA}/, '$1' + source).substring(1).replace(/\$\$/, '$$');
-
-    queryDB(db, query);
-  });
 })();
+
+let queryForm = document.getElementById('query');
+queryForm.addEventListener('submit', function(e) {
+  e.preventDefault();
+
+  let source = queryForm.elements['source'].value;
+  let query = queryForm.elements['query'].value;
+
+  query = (' ' + query).replace(/([^$])\${DATA}/, '$1' + source).substring(1).replace(/\$\$/, '$$');
+
+  database.then((db) => {
+    return queryDB(db, query);
+  });
+});
 
 async function queryDB(db, query) {
   try {
