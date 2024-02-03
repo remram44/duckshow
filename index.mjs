@@ -121,9 +121,14 @@ function plot(results) {
   }
 
   let formatter = dateFormatters[resolution];
+  let hasLabel = 'label' in allFields;
+
   let data = [];
   for(let row of results) {
-    let entry = {label: 'thing', date: formatter(row), value: Number(row['value'])};
+    let entry = {date: formatter(row), value: Number(row['value'])};
+    if(hasLabel) {
+      entry['label'] = row['label'];
+    }
     data.push(entry);
   }
   console.log(data);
@@ -143,9 +148,11 @@ function plot(results) {
     "encoding": {
       "x": {"field": "date", "type": "temporal", "utc": true, "timeUnit": vlTimeUnits[resolution]},
       "y": {"field": "value", "type": "quantitative"},
-      "color": {"field": "label", "type": "nominal"}
     }
   };
+  if(hasLabel) {
+    vlSpec['encoding']['color'] = {"field": "label", "type": "nominal"};
+  }
   vegaEmbed('#graph', vlSpec);
 }
 
