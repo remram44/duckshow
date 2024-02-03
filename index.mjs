@@ -58,7 +58,9 @@ function tabulate(results) {
     }
     table.appendChild(tr);
   }
-  return table;
+
+  document.getElementById('table').innerText = '';
+  document.getElementById('table').appendChild(table);
 }
 
 function zeroPad(num, digits) {
@@ -86,9 +88,38 @@ const vlTimeUnits = {
   'microseconds': 'yearmonthdatehoursminutessecondsmilliseconds',
 };
 
-function plot(results, resolution) {
-  let graph = document.createElement('div');
-  graph.style = "width: 100%; height: 50vh;";
+function plot(results) {
+  let allFields = {};
+  for(let col of results.schema.fields) {
+    allFields[col.name] = true;
+  }
+  let resolution = null;
+  if(allFields['value']) {
+    if(allFields['year'] && allFields['month'] && allFields['day']) {
+      if(allFields['hour']) {
+        if(allFields['minute']) {
+          if(allFields['second']) {
+            if(allFields['microseconds']) {
+              resolution = 'microseconds';
+            } else {
+              resolution = 'second';
+            }
+          } else {
+            resolution = 'minute';
+          }
+        } else {
+          resolution = 'hour';
+        }
+      } else {
+        resolution = 'day';
+      }
+    }
+  }
+  if(resolution === null) {
+    document.getElementById('graph').innerText = '';
+    return;
+  }
+
   let formatter = dateFormatters[resolution];
   let data = [];
   for(let row of results) {
@@ -115,63 +146,28 @@ function plot(results, resolution) {
       "color": {"field": "label", "type": "nominal"}
     }
   };
-  vegaEmbed(graph, vlSpec);
-  return graph;
+  vegaEmbed('#graph', vlSpec);
 }
 
 async function queryDB(db, query) {
+  document.getElementById('error').style.display = 'none';
+  document.getElementById('error').innerText = '';
+
   try {
     const conn = await db.connect();
     let results = await conn.query(query);
     console.log('results:', results);
 
-    let table = tabulate(results);
+    tabulate(results);
 
-    let graph = null;
-    let allFields = {};
-    for(let col of results.schema.fields) {
-      allFields[col.name] = true;
-    }
-    if(allFields['value']) {
-      let resolution = null;
-      if(allFields['year'] && allFields['month'] && allFields['day']) {
-        if(allFields['hour']) {
-          if(allFields['minute']) {
-            if(allFields['second']) {
-              if(allFields['microseconds']) {
-                resolution = 'microseconds';
-              } else {
-                resolution = 'second';
-              }
-            } else {
-              resolution = 'minute';
-            }
-          } else {
-            resolution = 'hour';
-          }
-        } else {
-          resolution = 'day';
-        }
-      }
-
-      if(resolution) {
-        graph = plot(results, resolution);
-      }
-    }
+    plot(results);
 
     await conn.close();
-
-    document.getElementById('viz').innerText = '';
-    document.getElementById('viz').appendChild(table);
-    if(graph) {
-      document.getElementById('viz').appendChild(graph);
-    }
   } catch(e) {
     console.error(e);
-    document.getElementById('viz').innerText = '';
-    let err = document.createElement('p');
-    err.className = 'error';
-    err.innerText = 'Error: ' + e;
-    document.getElementById('viz').appendChild(err);
+    document.getElementById('table').innerText = '';
+    document.getElementById('graph').innerText = '';
+    document.getElementById('error').style.display = '';
+    document.getElementById('error').innerText = 'Error: ' + e;
   }
 }
