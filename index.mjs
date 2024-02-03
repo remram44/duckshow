@@ -67,9 +67,11 @@ async function queryDB(db, query) {
     document.getElementById('viz').innerText = '';
     document.getElementById('viz').appendChild(table);
   } catch(e) {
+    console.error(e);
     document.getElementById('viz').innerText = '';
     let err = document.createElement('p');
     err.className = 'error';
-    err.innerText = '' + e;
+    err.innerText = 'Error: ' + e;
+    document.getElementById('viz').appendChild(err);
   }
 }
